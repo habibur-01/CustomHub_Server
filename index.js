@@ -33,6 +33,8 @@ async function run() {
 
         // create database
         const userCollection =  client.db("ContestHub").collection("users")
+        const contestCollection =  client.db("ContestHub").collection("totalContest")
+       
 
         app.post("/users", async(req, res) => {
             const user = req.body
@@ -42,6 +44,12 @@ async function run() {
         
         app.get("/users", async(req, res ) => {
             const result = await userCollection.find().toArray()
+            res.send(result)
+        })
+
+        // get contest data
+        app.get("/contest", async(req, res) => {
+            const result = await contestCollection.find().toArray()
             res.send(result)
         })
         // Send a ping to confirm a successful connection
