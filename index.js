@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 require('dotenv').config()
+const stripe=require("stripe")(process.env.STRIPE_TEST_KEY)
 const app = express()
 const port = process.env.PORT  || 3000
 
@@ -34,6 +35,7 @@ async function run() {
         // create database
         const userCollection =  client.db("ContestHub").collection("users")
         const contestCollection =  client.db("ContestHub").collection("totalContest")
+        const participantCollection= client.db("ContestHub").collection("participants")
        
 
         app.post("/users", async(req, res) => {
@@ -50,6 +52,30 @@ async function run() {
         // get contest data
         app.get("/contest", async(req, res) => {
             const result = await contestCollection.find().toArray()
+            res.send(result)
+        })
+
+        // payment_intent
+        app.post('/create-payment-inten', async(req, res)=> {
+            const {price} = req.body
+            const amount = parseInt(price*100)
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types:['card']
+                // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+                
+              });
+              res.send({
+                clientSecret: paymentIntent.client_secret,
+              });
+        })
+
+        // send contest register user data
+        app.post('/payment', async(req,res)=>{
+            const payment = req.body;
+            const result = await participantCollection.insertOne(payment)
             res.send(result)
         })
         // Send a ping to confirm a successful connection
