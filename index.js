@@ -8,7 +8,9 @@ const port = process.env.PORT || 3000
 // Middleware
 app.use(cors({
     origin: [
-        'http://localhost:5173'
+        'http://localhost:5173',
+        'https://contesthub-5c493.web.app/',
+        'https://contesthub-5c493.firebaseapp.com/'
     ],
     credentials: true
 }))
@@ -30,7 +32,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         // create database
         const userCollection = client.db("ContestHub").collection("users")
@@ -57,6 +59,13 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+        })
+
         app.patch('/users/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
@@ -72,6 +81,7 @@ async function run() {
             const result = await userCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
+        
 
         // get contest data
         app.get("/contest", async (req, res) => {
@@ -103,6 +113,12 @@ async function run() {
                 },
             };
             const result = await contestCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        })
+        app.delete('/contest/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await contestCollection.deleteOne(query);
             res.send(result);
         })
 
