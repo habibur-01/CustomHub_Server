@@ -84,6 +84,28 @@ async function run() {
             res.send(result)
         })
 
+        app.patch('/contest/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedUser = req.body;
+            console.log(updatedUser)
+            // console.log(updatedBooking);
+            const updateDoc = {
+                $set: {
+                    contestName: updatedUser.contestName,
+                    contestType: updatedUser.contestType,
+                    instruction: updatedUser.instruction,
+                    endDate: updatedUser.endDate,
+                    price: updatedUser.price,
+                    prize: updatedUser.prize,
+                    image: updatedUser.image
+                    
+                },
+            };
+            const result = await contestCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        })
+
         // payment_intent
         app.post('/create-payment-inten', async (req, res) => {
             const { price } = req.body
