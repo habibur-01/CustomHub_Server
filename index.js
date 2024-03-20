@@ -38,6 +38,19 @@ async function run() {
         const userCollection = client.db("ContestHub").collection("users")
         const contestCollection = client.db("ContestHub").collection("totalContest")
         const participantCollection = client.db("ContestHub").collection("participants")
+        const taskCollection = client.db("ContestHub").collection("submittedTsk")
+        const winnerCollection = client.db("ContestHub").collection("contestWinner")
+
+        app.post("/winner", async(req, res)=>{
+            const user = req.body
+            const result = await winnerCollection.insertOne(user)
+            res.send(result)
+        })
+
+        app.get("/winner", async(req,res) => {
+            const result = await winnerCollection.find().toArray()
+            res.send(result)
+        })
 
 
         app.post("/users", async (req, res) => {
@@ -81,14 +94,27 @@ async function run() {
             const result = await userCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
-        
+
 
         // get contest data
         app.get("/contest", async (req, res) => {
             const result = await contestCollection.find().toArray()
             res.send(result)
         })
-        app.post("/contest", async(req,res)=>{
+        // app.get("/contest", async (req, res) => {
+        //     let query = {}
+
+        //     if (req.query?.status) {
+        //         query = { status: req.query.status }
+        //     }
+        //     // const cursor = bookingCollection.find(query)
+        //     // const result = await cursor.toArray()
+        //     // res.send(result)
+        //     const result = await contestCollection.find(query).toArray()
+        //     res.send(result)
+        // })
+
+        app.post("/contest", async (req, res) => {
             const contest = req.body
             const result = await contestCollection.insertOne(contest)
             res.send(result)
@@ -98,22 +124,33 @@ async function run() {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const updatedUser = req.body;
-            console.log(updatedUser)
-            // console.log(updatedBooking);
-            const updateDoc = {
-                $set: {
-                    contestName: updatedUser.contestName,
-                    contestType: updatedUser.contestType,
-                    instruction: updatedUser.instruction,
-                    endDate: updatedUser.endDate,
-                    price: updatedUser.price,
-                    prize: updatedUser.prize,
-                    image: updatedUser.image
-                    
-                },
+            if (updatedUser.status === 'confirmed') {
+                // Update status to 'confirmed'
+                const updatedDoc = { $set: { status: 'confirmed' } };
+                const result = await contestCollection.updateOne(filter, updatedDoc);
+                res.send(result);
+            } else {
+                // Handle other updates (e.g., updating contest details)
+                const updateDoc = {
+                    $set: {
+                        contestName: updatedUser.contestName,
+                        contestType: updatedUser.contestType,
+                        taskInstructions: updatedUser.taskInstructions,
+                        endDate: updatedUser.endDate,
+                        price: updatedUser.price,
+                        prize: updatedUser.prize,
+                        image: updatedUser.image
+                    },
+
+
+                };
+                const result = await contestCollection.updateOne(filter, updateDoc);
+                res.send(result);
+                console.log(updatedUser)
+                // console.log(updatedBooking);
+
             };
-            const result = await contestCollection.updateOne(filter, updateDoc);
-            res.send(result);
+
         })
         app.delete('/contest/:id', async (req, res) => {
             const id = req.params.id;
@@ -121,6 +158,25 @@ async function run() {
             const result = await contestCollection.deleteOne(query);
             res.send(result);
         })
+
+        // get submittedTask
+        app.get("/submittedTask", async(req, res)=> {
+            const result= await taskCollection.find().toArray()
+            res.send(result)
+        })
+
+        // set status
+        // app.patch('/contest/:id', async(req, res) => {
+        //     const id = req.params.id;
+        //     const filter = { _id: new ObjectId(id)}
+        //     const updatedDoc = {
+        //       $set:{
+        //         status: 'confirmed'
+        //       }
+        //     }
+        //     const result = await contestCollection.updateOne(filter, updatedDoc)
+        //     res.send(result)
+        //   })
 
         // payment_intent
         app.post('/create-payment-inten', async (req, res) => {
