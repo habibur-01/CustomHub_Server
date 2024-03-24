@@ -10,7 +10,7 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'https://contesthub-5c493.web.app/',
-        'https://contesthub-5c493.firebaseapp.com/'
+        'https://contesthub-5c493.firebaseapp.com'
     ],
     credentials: true
 }))
@@ -41,15 +41,69 @@ async function run() {
         const taskCollection = client.db("ContestHub").collection("submittedTsk")
         const winnerCollection = client.db("ContestHub").collection("contestWinner")
 
-        app.post("/winner", async(req, res)=>{
+
+
+        app.post("/winner", async (req, res) => {
             const user = req.body
             const result = await winnerCollection.insertOne(user)
             res.send(result)
         })
 
-        app.get("/winner", async(req,res) => {
+        app.get("/winner", async (req, res) => {
             const result = await winnerCollection.find().toArray()
             res.send(result)
+        })
+        app.get("/winner", async (req, res) => {
+            let query = {}
+
+            if (req.query?.contestName) {
+                query = { contestName: req.query.contestName }
+            }
+            // const cursor = bookingCollection.find(query)
+            // const result = await cursor.toArray()
+            // res.send(result)
+            const result = await userCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.get('/aggregateData', async (req, res) => {
+            try {
+                const result = await winnerCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'users', // Corrected collection name
+                            localField: 'examinee',
+                            foreignField: 'email',
+                            as: 'userData'
+                        }
+                    },
+                    {
+                        $unwind: '$userData'
+                    },
+                    {
+                        $project: {
+                            examinee: 1,
+                            contestName: 1,
+                            status: 1,
+                            userData: {
+                                userImage: 1,
+
+                            }
+                        }
+                    }
+                ]).toArray();
+                res.json(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+
+        });
+
+
+        app.get("user/count", async (req, res) => {
+            const result = await userCollection.countDocuments()
+            res.send({ result })
         })
 
 
@@ -97,8 +151,21 @@ async function run() {
 
 
         // get contest data
+        // app.get("/contest", async (req, res) => {
+        //     const result = await contestCollection.find().toArray()
+        //     res.send(result)
+        // })
+
         app.get("/contest", async (req, res) => {
-            const result = await contestCollection.find().toArray()
+            let query = {}
+
+            if (req.query?.contestType) {
+                query = { contestType: req.query.contestType }
+            }
+            // const cursor = bookingCollection.find(query)
+            // const result = await cursor.toArray()
+            // res.send(result)
+            const result = await contestCollection.find(query).toArray()
             res.send(result)
         })
         // app.get("/contest", async (req, res) => {
@@ -119,6 +186,12 @@ async function run() {
             const result = await contestCollection.insertOne(contest)
             res.send(result)
         })
+        app.get("/contest/:id", async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: new ObjectId(id) };
+            const result = await contestCollection.findOne(filter);
+            res.send(result);
+        })
 
         app.patch('/contest/:id', async (req, res) => {
             const id = req.params.id;
@@ -129,7 +202,14 @@ async function run() {
                 const updatedDoc = { $set: { status: 'confirmed' } };
                 const result = await contestCollection.updateOne(filter, updatedDoc);
                 res.send(result);
-            } else {
+            } 
+            if (updatedUser.participant !== undefined ) {
+                // Update status to 'confirmed'
+                const updatedDoc = { $set: { participant: updatedUser.participant } };
+                const result = await contestCollection.updateOne(filter, updatedDoc);
+                res.send(result);
+            }
+            else {
                 // Handle other updates (e.g., updating contest details)
                 const updateDoc = {
                     $set: {
@@ -160,8 +240,8 @@ async function run() {
         })
 
         // get submittedTask
-        app.get("/submittedTask", async(req, res)=> {
-            const result= await taskCollection.find().toArray()
+        app.get("/submittedTask", async (req, res) => {
+            const result = await taskCollection.find().toArray()
             res.send(result)
         })
 
@@ -179,7 +259,7 @@ async function run() {
         //   })
 
         // payment_intent
-        app.post('/create-payment-inten', async (req, res) => {
+        app.post('/create-payment-intent', async (req, res) => {
             const { price } = req.body
             const amount = parseInt(price * 100)
 
